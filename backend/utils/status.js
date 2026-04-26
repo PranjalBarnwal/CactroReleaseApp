@@ -4,7 +4,7 @@ export function computeStatus(completedSteps) {
   if (!completedSteps || completedSteps.length === 0) {
     return 'planned';
   }
-  if (completedSteps.length === RELEASE_STEPS.length) {
+  if (completedSteps.length === 7) {
     return 'done';
   }
   return 'ongoing';

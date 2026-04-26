@@ -48,6 +48,22 @@ router.post('/', async (req, res) => {
   }
 });
 
+router.patch('/:id', async (req, res) => {
+  try {
+    const { name, date } = req.body;
+    const release = await Release.update(req.params.id, name, date);
+    if (!release) {
+      return res.status(404).json({ error: 'Release not found' });
+    }
+    res.json({
+      ...release,
+      status: computeStatus(release.completed_steps)
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 router.patch('/:id/steps', async (req, res) => {
   try {
     const { completedSteps } = req.body;

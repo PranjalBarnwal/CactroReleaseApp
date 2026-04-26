@@ -1,122 +1,159 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import { useState, useEffect } from 'react';
+import CreateReleaseModal from './components/CreateReleaseModal';
+import ReleaseTable from './components/ReleaseTable';
+import ReleaseDetailView from './components/ReleaseDetailView';
+import * as api from './api/releases';
 
-function App() {
-  const [count, setCount] = useState(0)
+export default function App() {
+  const [releases, setReleases] = useState([]);
+  const [steps, setSteps] = useState([]);
+  const [selectedRelease, setSelectedRelease] = useState(null);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  async function loadData() {
+    try {
+      const [releasesData, stepsData] = await Promise.all([
+        api.getReleases(),
+        api.getSteps()
+      ]);
+      setReleases(releasesData);
+      setSteps(stepsData);
+    } catch (error) {
+      console.error('Error loading data:', error);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleCreateRelease(data) {
+    try {
+      await api.createRelease(data);
+      await loadData();
+      setShowCreateModal(false);
+    } catch (error) {
+      console.error('Error creating release:', error);
+    }
+  }
+
+  async function handleUpdateRelease(id, name, date) {
+    try {
+      const updated = await api.updateRelease(id, name, date);
+      setReleases(releases.map(r => r.id === id ? updated : r));
+      if (selectedRelease?.id === id) {
+        setSelectedRelease(updated);
+      }
+    } catch (error) {
+      console.error('Error updating release:', error);
+    }
+  }
+
+  async function handleUpdateSteps(id, completedSteps) {
+    try {
+      const updated = await api.updateSteps(id, completedSteps);
+      setReleases(releases.map(r => r.id === id ? updated : r));
+      if (selectedRelease?.id === id) {
+        setSelectedRelease(updated);
+      }
+    } catch (error) {
+      console.error('Error updating steps:', error);
+    }
+  }
+
+  async function handleUpdateInfo(id, additionalInfo) {
+    try {
+      const updated = await api.updateInfo(id, additionalInfo);
+      setReleases(releases.map(r => r.id === id ? updated : r));
+      if (selectedRelease?.id === id) {
+        setSelectedRelease(updated);
+      }
+    } catch (error) {
+      console.error('Error updating info:', error);
+    }
+  }
+
+  async function handleDeleteRelease(id) {
+    if (!confirm('Are you sure you want to delete this release?')) return;
+    
+    try {
+      await api.deleteRelease(id);
+      await loadData();
+      setSelectedRelease(null);
+    } catch (error) {
+      console.error('Error deleting release:', error);
+    }
+  }
+
+  if (loading) {
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ color: '#666' }}>Loading...</div>
+      </div>
+    );
+  }
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+    <div style={{ minHeight: '100vh', backgroundColor: '#f3f4f6' }}>
+      <div style={{ maxWidth: '900px', margin: '0 auto', padding: '48px 16px' }}>
+        {selectedRelease ? (
+          <div style={{ backgroundColor: 'white', borderRadius: '8px', padding: '32px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+            <ReleaseDetailView
+              release={selectedRelease}
+              steps={steps}
+              onUpdateRelease={handleUpdateRelease}
+              onUpdateSteps={handleUpdateSteps}
+              onUpdateInfo={handleUpdateInfo}
+              onDelete={handleDeleteRelease}
+              onBack={() => setSelectedRelease(null)}
+            />
+          </div>
+        ) : (
+          <>
+            <div style={{ textAlign: 'center', marginBottom: '48px' }}>
+              <h1 style={{ fontSize: '36px', fontWeight: '700', marginBottom: '8px', color: '#1f2937' }}>ReleaseCheck</h1>
+              <p style={{ color: '#6b7280', fontSize: '15px' }}>Your all-in-one release checklist tool</p>
+            </div>
 
-      <div className="ticks"></div>
+            <div style={{ backgroundColor: 'white', borderRadius: '8px', padding: '24px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+              <div style={{ marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ fontSize: '15px', color: '#a5b4fc', fontWeight: '500' }}>All releases</div>
+                <button
+                  onClick={() => setShowCreateModal(true)}
+                  style={{
+                    padding: '10px 20px',
+                    backgroundColor: '#6366f1',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    fontWeight: '600'
+                  }}
+                >
+                  New release
+                </button>
+              </div>
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+              <ReleaseTable
+                releases={releases}
+                onSelectRelease={setSelectedRelease}
+                onDeleteRelease={handleDeleteRelease}
+              />
+            </div>
+          </>
+        )}
+      </div>
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+      {showCreateModal && (
+        <CreateReleaseModal
+          onSubmit={handleCreateRelease}
+          onClose={() => setShowCreateModal(false)}
+        />
+      )}
+    </div>
+  );
 }
-
-export default App

@@ -24,6 +24,14 @@ export const Release = {
     return result.rows[0];
   },
 
+  async update(id, name, date) {
+    const result = await pool.query(
+      'UPDATE releases SET name = $1, date = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3 RETURNING *',
+      [name, date, id]
+    );
+    return result.rows[0];
+  },
+
   async updateSteps(id, completedSteps) {
     const result = await pool.query(
       'UPDATE releases SET completed_steps = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 RETURNING *',
